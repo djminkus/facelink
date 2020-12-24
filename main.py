@@ -47,7 +47,7 @@ def main():
     faces, ids = getFacesAndLabels(Training_Set_Names, detector)
     recognizer.train(faces, np.array(ids))
     # Save the model into trainer/Trained Model.yml
-    recognizer.write('trainer/Trained_Model.yml')
+    recognizer.write('trainer/trained_model.yml')
     # Print the number of faces trained and end program
     print("\n Faces trained.")
 

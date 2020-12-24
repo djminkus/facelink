@@ -5,7 +5,7 @@ import os
 import glob
 from PIL import Image
 
-# Creating the dataset and labeled the training and test data
+# Name of folder holding test images
 TESTSET_DIRECTORY = 'TestDataset'
 
 assert (os.path.exists(TESTSET_DIRECTORY))
@@ -15,6 +15,12 @@ assert (len(Test_Set_Names) > 0)
 Test_Set_Names.sort()
 font = cv2.FONT_HERSHEY_SIMPLEX
 names = ['David', 'Hakan', 'Unknown']
+bios = [
+    '''seeking Master's in Electrical Engineering at Colorado School of Mines''',
+    'seeking a Ph.D. in __ at Colorado School of Mines',
+    # 'this person is not a FaceLink user.'
+    ' '
+]
 
 
 def getImages(paths):
@@ -35,8 +41,9 @@ def getImages(paths):
 def main():
 
     face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+    face_detector_side = cv2.CascadeClassifier('')
     face_recognizer = cv2.face.LBPHFaceRecognizer_create()
-    face_recognizer.read('trainer/Trained_Model.yml')
+    face_recognizer.read('trainer/trained_model.yml')
 
     imgs, grays = getImages(Test_Set_Names)
     counter = 0
@@ -45,9 +52,12 @@ def main():
     directory = "FACELINK RESULTS"
 
     # TODO PLEASE ENTER YOUR DIRECTORY!!
-    parent_dir = "C:/Users/ayaz_a/Desktop/Computer Vision/Face_Recognition_Project"
+    parent_dir = "/Users/dg/coding/PycharmProjects/facelink/bioPanes"
+    # parent_dir = "/Users/ayaz_a/Desktop/Computer Vision/Face_Recognition_Project"
+
     path = os.path.join(parent_dir, directory)
-    os.mkdir(path)
+    if not os.path.isdir(path):
+        os.mkdir(path)
 
     for img, gray in zip(imgs, grays):
 
@@ -55,30 +65,40 @@ def main():
         # Min Neighbours is chosen 5
         faces = face_detector.detectMultiScale(gray, 1.2, 5)
 
+        # TODO: Modularize this section
         for (x, y, w, h) in faces:
-
-            id, similarity = face_recognizer.predict(gray[y:y + h, x:x + w])
-            if similarity < 100:
-                id = names[id-1]
-                confidence = "  {0}%".format(round(100 - similarity))
+            # Get predicted label and "inverse similarity"
+            id_number, inv_conf = face_recognizer.predict(gray[y : y + h, x : x + w])
+            if inv_conf < 100:
+                user_name = names[id_number-1]
+                confidence = "  {0}%".format(round(100 - inv_conf))
+                bio = bios[id_number-1]
             else:
-                id = "unknown"
-                confidence = "  {0}%".format(round(100 - similarity))
+                id_number = "unknown"
+                confidence = "  {0}%".format(round(100 - inv_conf))
+                bio = bios[2]
 
-            # According the similarity results face box will be change
-            if similarity < 20:
+            # Color-code the face box based on confidence/similarity level
+            if inv_conf < 20:          # HIGH confidence
                 color = (0, 255, 0)    # green box
-            elif similarity < 40:
+            elif inv_conf < 40:        # MEDIUM conf
                 color = (0, 255, 255)  # yellow box
-            else:
+            else:                      # LOW conf
                 color = (0, 0, 255)    # red box
 
-            cv2.rectangle(img, (x, y), (x + w, y + h), color , 3)
-            cv2.putText(img, str(id), (x + 5, y - 5), font, 1, color, 2)
+            # Draw box around face:
+            cv2.rectangle(img, (x, y), (x + w, y + h), color, 3)
+            # Label box with username:
+            cv2.putText(img, str(user_name), (x + 5, y - 5), font, 1, color, 2)
+            # Include confidence value:
             cv2.putText(img, str(confidence), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
-
-        cv2.imwrite(f'FACELINK RESULTS/{id}_{counter}.jpg', img)
+            # Include bio:
+            cv2.putText(img, bio, (x + 5, y + h + 20), font, .75, (255, 255, 0), 1)
+            #                                                ^ fontScale
+            # End faces loop
+        cv2.imwrite(f'FACELINK RESULTS/{user_name}_{counter}.jpg', img)
         counter += 1
+        # End images loop
     print('Test Dataset results are READY!!')
 
 

@@ -7,6 +7,11 @@ from PIL import Image
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 names = ['David', 'Hakan', 'Unknown']
+bios = [
+    '''seeking Master's in Electrical Engineering at Colorado School of Mines''',
+    'seeking a Ph.D. in __ at Colorado School of Mines',
+    'this person is not a FaceLink user.'
+]
 
 
 def main():
@@ -23,7 +28,7 @@ def main():
 
     face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     face_recognizer = cv2.face.LBPHFaceRecognizer_create()
-    face_recognizer.read('trainer/trainer.yml')
+    face_recognizer.read('trainer/trained_model.yml')
 
     while True:
         # print(cam.read())
@@ -43,23 +48,23 @@ def main():
 
         for (x, y, w, h) in faces:
 
-            id, similarity = face_recognizer.predict(gray[y:y + h, x:x + w])
-            if similarity < 100:
+            id, inv_conf = face_recognizer.predict(gray[y:y + h, x:x + w])
+            if inv_conf < 100:
                 id = names[id-1]
-                confidence = "  {0}%".format(round(100 - similarity))
+                confidence = "  {0}%".format(round(100 - inv_conf))
             else:
                 id = "unknown"
-                confidence = "  {0}%".format(round(100 - similarity))
+                confidence = "  {0}%".format(round(100 - inv_conf))
 
             # According the similarity results face box will be change
-            if similarity < 20:
+            if inv_conf < 20:
                 color = (0, 255, 0)    # green box
-            elif similarity < 40:
+            elif inv_conf < 40:
                 color = (0, 255, 255)  # yellow box
             else:
                 color = (0, 0, 255)    # red box
 
-            cv2.rectangle(img, (x, y), (x + w, y + h), color , 3)
+            cv2.rectangle(img, (x, y), (x + w, y + h), color, 3)
             cv2.putText(img, str(id), (x + 5, y - 5), font, 1, color, 2)
             cv2.putText(img, str(confidence), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
 
