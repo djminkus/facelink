@@ -41,7 +41,7 @@ def getImages(paths):
 def main():
 
     face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-    face_detector_side = cv2.CascadeClassifier('')
+    # face_detector_side = cv2.CascadeClassifier('')
     face_recognizer = cv2.face.LBPHFaceRecognizer_create()
     face_recognizer.read('trainer/trained_model.yml')
 
