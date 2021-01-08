@@ -1,56 +1,110 @@
+# coding:utf-8
+
+# FaceLink
+# A social networking app for 2021
+
+from kivy.app import App
+from kivy.uix.image import Image
+from kivy.clock import Clock
+from kivy.graphics.texture import Texture
 import cv2
-import numpy as np
-import os
-import glob
-from PIL import Image
-
-# Creating the dataset and labeled the Training and Test data
-# Defining the directory for the Training and Test datasets
-TRAININGSET_DIRECTORY = 'TrainingDataset'
-TESTSET_DIRECTORY = 'TestDataset'
 
 
-assert (os.path.exists(TRAININGSET_DIRECTORY))
-Training_Set_Names = glob.glob(os.path.join(TRAININGSET_DIRECTORY, "*.jpg"))
-assert (len(Training_Set_Names) > 0)
-assert (os.path.exists(TESTSET_DIRECTORY))
-Test_Set_Names = glob.glob(os.path.join(TESTSET_DIRECTORY, "*.jpg"))
-assert (len(Test_Set_Names) > 0)
 
-Training_Set_Names.sort()
-Test_Set_Names.sort()
 font = cv2.FONT_HERSHEY_SIMPLEX
+names = ['David', 'Hakan', 'Unknown']
+bios = [
+    '''seeking Master's in Electrical Engineering at Colorado School of Mines''',
+    'seeking a Ph.D. in __ at Colorado School of Mines',
+    'this person is not a FaceLink user.'
+]
+
+# ---- everything before cam loop:
+counter = 0
+
+# Initialize and start realtime video capture
+cam = cv2.VideoCapture(0)
+cam.set(3, 640)  # set video width
+cam.set(4, 480)  # set video height
+
+# Define min window size to be recognized as a face
+minW = 0.1 * cam.get(3)
+minH = 0.1 * cam.get(4)
+
+# face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+# face_recognizer = cv2.face.LBPHFaceRecognizer_create()
+# face_recognizer.read('trainer/trained_model.yml')
+#
+
+class KivyCamera(Image):
+    def __init__(self, capture, fps, **kwargs):
+        super(KivyCamera, self).__init__(**kwargs)
+        self.capture = capture  #deined as cv2.VideoCapture(0) in CamApp build func
+        Clock.schedule_interval(self.update, 1.0 / fps)
+
+        self.face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+        self.face_recognizer = cv2.face.LBPHFaceRecognizer_create()
+        self.face_recognizer.read('trainer/trained_model.yml')
+
+    def update(self, dt):
+        _, frame = self.capture.read()  # Frame is image
+        if _:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            # print(gray)
+
+            faces = self.face_detector.detectMultiScale(
+                gray,
+                scaleFactor=1.2,
+                minNeighbors=5,
+                minSize=(int(minW), int(minH)),
+            )
+
+            # print(faces)
+
+            for (x, y, w, h) in faces:
+
+                id, inv_conf = self.face_recognizer.predict(gray[y:y + h, x:x + w])
+                if inv_conf < 100:
+                    id = names[id - 1]
+                    confidence = "  {0}%".format(round(100 - inv_conf))
+                else:
+                    id = "unknown"
+                    confidence = "  {0}%".format(round(100 - inv_conf))
+
+                # According the similarity results face box will be change
+                if inv_conf < 20:
+                    color = (0, 255, 0)  # green box
+                elif inv_conf < 40:
+                    color = (0, 255, 255)  # yellow box
+                else:
+                    color = (0, 0, 255)  # red box
+
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
+                cv2.putText(frame, str(id), (x + 5, y - 5), font, 1, color, 2)
+                cv2.putText(frame, str(confidence), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
+
+            # convert it to texture for display in app:
+            buf1 = cv2.flip(frame, 0)
+            buf = buf1.tostring()
+            image_texture = Texture.create(
+                size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
+            image_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
+            # display image from the texture
+            self.texture = image_texture
 
 
-def getFacesAndLabels(paths, detector):
-    faceSamples = []
-    ids = []
-    for imagePath in paths:
-        PIL_img = Image.open(imagePath).convert('L') # convert it to grayscale
-        img_numpy = np.array(PIL_img,'uint8')
-        id = int(os.path.split(imagePath)[-1].split(".")[1])
+class CamApp(App):
+    def build(self):
+        self.capture = cv2.VideoCapture(0)
+        self.my_camera = KivyCamera(capture=self.capture, fps=30)
+        return self.my_camera
 
-        faces = detector.detectMultiScale(img_numpy)
-        for (x, y, w, h) in faces:
-            faceSamples.append(img_numpy[y:y+h,x:x+w])
-            ids.append(id)
-    return faceSamples, ids
-
-
-def main():
-
-    detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-    recognizer = cv2.face.LBPHFaceRecognizer_create()
-    # recognizer.read('trainer/trainer.yml')
-
-    print("\n Training faces ...")
-    faces, ids = getFacesAndLabels(Training_Set_Names, detector)
-    recognizer.train(faces, np.array(ids))
-    # Save the model into trainer/Trained Model.yml
-    recognizer.write('trainer/trained_model.yml')
-    # Print the number of faces trained and end program
-    print("\n Faces trained.")
+    def on_stop(self):
+        # Without this, app will not exit even if the window is closed
+        self.capture.release()
 
 
 if __name__ == '__main__':
-    main()
+    CamApp().run()
