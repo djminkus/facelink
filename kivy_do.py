@@ -7,7 +7,6 @@ from kivy.app import App
 from kivy.uix.label import Label
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
-
 from kivy.uix.camera import Camera
 from kivy.uix.widget import Widget
 from kivy.uix.slider import Slider
