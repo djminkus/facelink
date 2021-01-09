@@ -24,7 +24,8 @@ for file in os.listdir(base_dir + '/TrainingDataset/'):
         image = cv2.imread(base_dir + '/TrainingDataset/' + file)
 
         (h, w) = image.shape[:2]
-        blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0))
+        blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0,
+                                     (300, 300), (104.0, 177.0, 123.0))
 
         model.setInput(blob)
         detections = model.forward()
