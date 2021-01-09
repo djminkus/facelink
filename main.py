@@ -36,10 +36,11 @@ minH = 0.1 * cam.get(4)
 # face_recognizer.read('trainer/trained_model.yml')
 #
 
+
 class KivyCamera(Image):
     def __init__(self, capture, fps, **kwargs):
         super(KivyCamera, self).__init__(**kwargs)
-        self.capture = capture  #deined as cv2.VideoCapture(0) in CamApp build func
+        self.capture = capture  # defined as cv2.VideoCapture(0) in CamApp build func
         Clock.schedule_interval(self.update, 1.0 / fps)
 
         self.face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
