@@ -58,7 +58,7 @@ class KivyCamera(Image):
         self.fd_model = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
 
         self.face_recognizer = cv2.face.LBPHFaceRecognizer_create()
-        self.face_recognizer.read('trainer/trained_model.yml')
+        self.face_recognizer.read('trainer/Trained_Model_w_DNN_hakan.yml')
 
     def update(self, dt):
         _, frame = self.capture.read()  # Frame is image
@@ -81,22 +81,17 @@ class KivyCamera(Image):
 
                 confidence = detections[0, 0, i, 2]
 
-                # If confidence > 0.5, save it as a separate file
+                # If confidence > 0.5, do stuff
                 if (confidence > 0.5):
                     count += 1
                     face = frame[startY:endY, startX:endX]
                     # cv2.imwrite(base_dir + '/dnn_extracted_faces/' + str(i) + '_' + file, frame_)
                     faces.append(face)
 
-            #print(faces)
-
                     h = endY - startY
                     w = endX - startX
                     x = startX
                     y = startY
-
-            #for (x, y, w, h) in faces:
-            #for face in faces:
 
                     id, inv_conf = self.face_recognizer.predict(gray[y:y + h, x:x + w])
                     if inv_conf < 100:

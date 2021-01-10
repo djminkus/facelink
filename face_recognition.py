@@ -10,6 +10,7 @@ TESTSET_DIRECTORY = 'TestDataset'
 
 assert (os.path.exists(TESTSET_DIRECTORY))
 Test_Set_Names = glob.glob(os.path.join(TESTSET_DIRECTORY, "*.jpg"))
+Test_Set_Names.extend(glob.glob(os.path.join(TESTSET_DIRECTORY, '*.JPG')))
 assert (len(Test_Set_Names) > 0)
 
 Test_Set_Names.sort()
@@ -43,7 +44,8 @@ def main():
     face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     # face_detector_side = cv2.CascadeClassifier('')
     face_recognizer = cv2.face.LBPHFaceRecognizer_create()
-    face_recognizer.read('trainer/trained_model.yml')
+    face_recognizer.read('trainer/Trained_Model_w_DNN_hakan.yml')
+    # face_recognizer.read('trainer/trainer.yml')
 
     imgs, grays = getImages(Test_Set_Names)
     counter = 0
@@ -52,8 +54,8 @@ def main():
     directory = "FACELINK RESULTS"
 
     # TODO PLEASE ENTER YOUR DIRECTORY!!
-    parent_dir = "/Users/dg/coding/PycharmProjects/facelink/bioPanes"
-    # parent_dir = "/Users/ayaz_a/Desktop/Computer Vision/Face_Recognition_Project"
+    #parent_dir = "/Users/dg/coding/PycharmProjects/facelink/bioPanes"
+    parent_dir = os.path.dirname(__file__)
 
     path = os.path.join(parent_dir, directory)
     if not os.path.isdir(path):

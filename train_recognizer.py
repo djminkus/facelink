@@ -55,8 +55,9 @@ def getFacesAndLabels(paths):
 
         # Identify each face
         for i in range(0, detections.shape[2]):
-            detections[0, 0, i, 3:7]
-            box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+            thing1 = detections[0, 0, i, 3:7]
+            # thing1 is [startX, startY, endX, endY] as percentages of width/height
+            box = thing1 * np.array([w, h, w, h])
             (startX, startY, endX, endY) = box.astype("int")
 
             confidence = detections[0, 0, i, 2]
@@ -68,11 +69,13 @@ def getFacesAndLabels(paths):
             # If confidence > 0.5, append it to the face samples
             if confidence > 0.5 and i < 1:
                 count += 1
-                gray_resized = cv2.resize(gray, (300, 300))
-                face = gray_resized[startY:endY, startX:endX]  # ***
+                #gray_resized = cv2.resize(gray, (300, 300))
+                face = gray[startY:endY, startX:endX]  # ***
                 faceSamples.append(face)
                 ids.append(id)
-                cv2.imwrite(base_dir + '/dnn_extracted_faces/' + str(i) + '_' + imagePath, face)
+                imagePath2 = imagePath.split('/')[1]
+                path = base_dir + '/dnn_extracted_faces/' + str(i) + '_' + imagePath2
+                cv2.imwrite(path, face)
 
     print("faces found: " + str(count))
     return faceSamples, ids
@@ -88,7 +91,7 @@ def main():
     print("\n Training faces ...")
     recognizer.train(faces, np.array(ids))
     # Save the model into trainer/Trained Model.yml
-    recognizer.write('trainer/Trained_Model_w_DNN.yml')
+    recognizer.write('trainer/Trained_Model_w_DNN_hakan.yml')
     # Print the number of faces trained and end program
     print("\n Faces trained.")
 
