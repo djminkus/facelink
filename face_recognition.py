@@ -12,16 +12,15 @@ assert (os.path.exists(TESTSET_DIRECTORY))
 Test_Set_Names = glob.glob(os.path.join(TESTSET_DIRECTORY, "*.jpg"))
 Test_Set_Names.extend(glob.glob(os.path.join(TESTSET_DIRECTORY, '*.JPG')))
 assert (len(Test_Set_Names) > 0)
-
 Test_Set_Names.sort()
+
 font = cv2.FONT_HERSHEY_SIMPLEX
 names = ['David', 'Hakan', 'Unknown']
 bios = [
     '''seeking Master's in Electrical Engineering at Colorado School of Mines''',
-    'seeking a Ph.D. in __ at Colorado School of Mines',
-    # 'this person is not a FaceLink user.'
-    ' '
+    'seeking a Ph.D. in __ at Colorado School of Mines'
 ]
+unknown_bio = 'this person is not a FaceLink user.'
 
 
 def getImages(paths):
@@ -71,14 +70,14 @@ def main():
         for (x, y, w, h) in faces:
             # Get predicted label and "inverse similarity"
             id_number, inv_conf = face_recognizer.predict(gray[y : y + h, x : x + w])
-            if inv_conf < 100:
+            if inv_conf < 100:  # FaceLink user found; display name and bio
                 user_name = names[id_number-1]
-                confidence = "  {0}%".format(round(100 - inv_conf))
                 bio = bios[id_number-1]
-            else:
-                id_number = "unknown"
-                confidence = "  {0}%".format(round(100 - inv_conf))
-                bio = bios[2]
+            else:  # No facelink user found
+                user_name = "unknown"
+                bio = unknown_bio
+                
+            confidence = "  {0}%".format(round(100 - inv_conf))
 
             # Color-code the face box based on confidence/similarity level
             if inv_conf < 20:          # HIGH confidence

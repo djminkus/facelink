@@ -11,13 +11,29 @@ from kivy.graphics.texture import Texture
 import cv2
 import numpy as np
 
+import tensorflow as tf
+from keras.models import Model, Sequential
+from keras.layers import Input, Conv2D, ZeroPadding2D, MaxPooling2D, Flatten, Dense, Dropout, Activation, concatenate
+from keras.layers.pooling import MaxPooling2D, AveragePooling2D
+from keras.layers.core import Dense, Activation, Lambda, Flatten
+from keras.layers.normalization import BatchNormalization
+from keras.preprocessing.image import load_img, save_img, img_to_array
+from keras.applications.imagenet_utils import preprocess_input
+from keras.preprocessing import image
+from keras.models import model_from_json
+from keras.layers.merge import Concatenate
+from keras import backend as K
+
+# OpenFace
+dump = False
+color = (67,67,67)
 
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 names = ['David', 'Hakan', 'Unknown']
 bios = [
     '''seeking Master's in Electrical Engineering at Colorado School of Mines''',
-    'seeking a Ph.D. in __ at Colorado School of Mines',
+    'seeking a Ph.D. at Colorado School of Mines',
     'this person is not a FaceLink user.'
 ]
 
@@ -45,7 +61,6 @@ minH = 0.1 * cam.get(4)
 base_dir = os.path.dirname(__file__)
 prototxt_path = os.path.join(base_dir + '/model_data/deploy.prototxt')
 caffemodel_path = os.path.join(base_dir + '/model_data/weights.caffemodel')
-
 
 
 class KivyCamera(Image):
@@ -82,7 +97,7 @@ class KivyCamera(Image):
                 confidence = detections[0, 0, i, 2]
 
                 # If confidence > 0.5, do stuff
-                if (confidence > 0.5):
+                if confidence > 0.5:
                     count += 1
                     face = frame[startY:endY, startX:endX]
                     # cv2.imwrite(base_dir + '/dnn_extracted_faces/' + str(i) + '_' + file, frame_)
