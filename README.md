@@ -1,7 +1,7 @@
 # FaceLink
 
-A realtime social networking app using facial recognition.
-Made for introverts who care.
+##A realtime social networking app using facial recognition.
+ ###Made for introverts who care.
 
 Learn about the people you see without talking to them. 
 
