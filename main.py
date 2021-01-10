@@ -17,7 +17,7 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 names = ['David', 'Hakan', 'Unknown']
 bios = [
     '''seeking Master's in Electrical Engineering at Colorado School of Mines''',
-    'seeking a Ph.D. in __ at Colorado School of Mines',
+    'seeking a Ph.D. at Colorado School of Mines',
     'this person is not a FaceLink user.'
 ]
 
