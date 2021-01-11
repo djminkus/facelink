@@ -5,7 +5,8 @@
 import os
 
 from kivy.app import App
-from kivy.uix.image import Image
+# from kivy.uix.image import Image
+import kivy.uix.image
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 import cv2
@@ -23,6 +24,8 @@ from keras.preprocessing import image
 from keras.models import model_from_json
 from keras.layers.merge import Concatenate
 from keras import backend as K
+
+from PIL import Image
 
 # OpenFace
 dump = False  # Dump recognition output stuff into console?
@@ -292,7 +295,7 @@ of_model = buildModel()  # OpenFace model
 print("model built")
 
 # https://drive.google.com/file/d/1LSe1YCV1x-BfNnfb7DFZTNpv_Q9jITxn/view
-of_model.load_weights('weights/openface_weights.h5')
+of_model.load_weights('openface_weights.h5')
 print("weights loaded")
 
 
@@ -341,7 +344,7 @@ print("employee representations retrieved successfully")
 
 
 # Kivy setup (function to process each frame is here):
-class KivyCamera(Image):
+class KivyCamera(kivy.uix.image.Image):
     def __init__(self, capture, fps, **kwargs):
         super(KivyCamera, self).__init__(**kwargs)
         self.capture = capture  # defined as cv2.VideoCapture(0) in CamApp build func
@@ -350,8 +353,8 @@ class KivyCamera(Image):
         # self.face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
         self.fd_model = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
 
-        self.face_recognizer = cv2.face.LBPHFaceRecognizer_create()
-        self.face_recognizer.read('trainer/Trained_Model_w_DNN_hakan.yml')
+        # self.face_recognizer = cv2.face.LBPHFaceRecognizer_create()
+        # self.face_recognizer.read('trainer/Trained_Model_w_DNN_hakan.yml')
 
     def update(self, dt):
         _, frame = self.capture.read()  # Frame is image
@@ -438,6 +441,8 @@ class KivyCamera(Image):
                                     color = (0, 255, 255)  # yellow box
                                 else:
                                     color = (0, 0, 255)  # red box
+
+                                print(color)
 
                                 break  # User match found; stop checking.
 
