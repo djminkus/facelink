@@ -470,6 +470,8 @@ class KivyCamera(kivy.uix.image.Image):
                     cv2.putText(frame, str(user_name), (x + 5, y - 5), font, 1, color, 2)
                     cv2.putText(frame, str(similarity), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
 
+
+
             # OpenFace stuff: ----------------------------------------------
             #   Given "faces" from Haar detector (not our "faces"):
             # for (x, y, w, h) in faces:
