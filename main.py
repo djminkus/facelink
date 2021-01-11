@@ -11,6 +11,7 @@ from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 import cv2
 import numpy as np
+from collections import Counter
 
 import tensorflow as tf
 from keras.models import Model, Sequential
@@ -38,6 +39,12 @@ bios = [
     'seeking a Ph.D. at Colorado School of Mines',
     'this person is not a FaceLink user.'
 ]
+
+
+def my_mode(sample):
+    c = Counter(sample)
+    return [k for k, v in c.items() if v == c.most_common(1)[0][1]]
+
 
 # ---- everything before cam loop:
 counter = 0
@@ -74,7 +81,7 @@ def preprocess_image(image_path):
     return img
 
 
-def buildModel():
+def buildModel():  # Build the face  recognition model
     myInput = Input(shape=(96, 96, 3))
 
     x = ZeroPadding2D(padding=(3, 3), input_shape=(96, 96, 3))(myInput)
@@ -334,7 +341,7 @@ user_pictures = "user_faces/"
 users = dict()
 
 for file in os.listdir(user_pictures):  # Fill dictionary with image representations
-    user, extension = file.split(".")
+    user, extension = file.split(".")  # user becomes "david_0" for example
     img = preprocess_image('user_faces/%s.jpg' % user)  # *further changes here?
     representation = of_model.predict(img)[0, :]
 
@@ -354,6 +361,9 @@ class KivyCamera(kivy.uix.image.Image):
         self.fd_model = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
 
         self.window = ['a', 'b', 'c', 'd', 'e']  # 5 most recent usernames
+        self.win_c = 0  # Window cursor. An index
+        self.max_win = 4   # Window length
+        self.counts = dict()
 
         # self.face_recognizer = cv2.face.LBPHFaceRecognizer_create()
         # self.face_recognizer.read('trainer/Trained_Model_w_DNN_hakan.yml')
@@ -469,8 +479,15 @@ class KivyCamera(kivy.uix.image.Image):
                     if similarity is 0:
                         user_name = 'unknown'
 
-                    self.window.append(user_name)
-                    # Find "mode" of window
+                    self.window[self.win_c] = user_name
+                    self.win_c += 1
+                    if self.win_c > self.max_win:
+                        self.win_c = 0
+
+                    # for b in range(self.max_win):
+                    #     self.counts[self.window[self.win_c]] += 1
+
+                    mode = my_mode(self.window)  # Most common result from last 5 frames
 
                     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
                     cv2.putText(frame, str(user_name), (x + 5, y - 5), font, 1, color, 2)
