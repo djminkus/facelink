@@ -378,6 +378,7 @@ class KivyCamera(Image):
                 if confidence > 0.5:
                     count += 1
                     face = frame[startY:endY, startX:endX]
+                      # ^ ***
                     # cv2.imwrite(base_dir + '/dnn_extracted_faces/' + str(i) + '_' + file, frame_)
                     faces.append(face)
 
@@ -412,6 +413,7 @@ class KivyCamera(Image):
                     cv2.rectangle(img, (x, y), (x + w, y + h), color, 1)  # draw rectangle to main image
 
                     detected_face = img[int(y):int(y + h), int(x):int(x + w)]  # crop detected face
+                      # ^ ***
                     detected_face = cv2.resize(detected_face, (96, 96))  # resize to 96x96
 
                     img_pixels = image.img_to_array(detected_face)
