@@ -25,7 +25,7 @@ from keras.layers.merge import Concatenate
 from keras import backend as K
 
 # OpenFace
-dump = False
+dump = False  # Dump recognition output stuff into console?
 color = (67, 67, 67)
 
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -323,22 +323,24 @@ if metric == "cosine":
 else:
     threshold = 0.95
 
-# put your employee pictures in this path as name_of_employee.jpg
-employee_pictures = "database/"
+# Put your employee (etc.) pictures in this path as name_of_employee.jpg
+# employee_pictures = "database/"
+user_pictures = "user_faces/"
 
-employees = dict()
+# employees = dict()
+users = dict()
 
-for file in os.listdir(employee_pictures):
-    employee, extension = file.split(".")
-    img = preprocess_image('database/%s.jpg' % employee)
+for file in os.listdir(user_pictures):
+    user, extension = file.split(".")
+    img = preprocess_image('user_faces/%s.jpg' % user)  # *further changes here?
     representation = of_model.predict(img)[0, :]
 
-    employees[employee] = representation
+    users[user] = representation
 
 print("employee representations retrieved successfully")
 
 
-# Kivy setup:
+# Kivy setup (function to process each frame is here):
 class KivyCamera(Image):
     def __init__(self, capture, fps, **kwargs):
         super(KivyCamera, self).__init__(**kwargs)
@@ -403,6 +405,71 @@ class KivyCamera(Image):
                     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
                     cv2.putText(frame, str(id), (x + 5, y - 5), font, 1, color, 2)
                     cv2.putText(frame, str(confidence), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
+
+            # OpenFace stuff: ----------------------------------------------
+            for (x, y, w, h) in faces:
+                if w > 130:  # discard small detected faces
+                    cv2.rectangle(img, (x, y), (x + w, y + h), color, 1)  # draw rectangle to main image
+
+                    detected_face = img[int(y):int(y + h), int(x):int(x + w)]  # crop detected face
+                    detected_face = cv2.resize(detected_face, (96, 96))  # resize to 96x96
+
+                    img_pixels = image.img_to_array(detected_face)
+                    img_pixels = np.expand_dims(img_pixels, axis=0)
+                    # employee dictionary is using preprocess_image and it normalizes in scale of [-1, +1]
+                    img_pixels /= 127.5
+                    img_pixels -= 1
+
+                    captured_representation = of_model.predict(img_pixels)[0, :]
+
+                    distances = []
+
+                    for i in users:
+                        user_name = i
+                        source_representation = users[i]
+
+                        if metric == "cosine":
+                            distance = findCosineDistance(captured_representation, source_representation)
+                        elif metric == "euclidean":
+                            distance = findEuclideanDistance(captured_representation, source_representation)
+
+                        if dump:
+                            print(user_name, ": ", distance)
+                        distances.append(distance)
+
+                    label_name = 'unknown'
+                    index = 0
+                    for i in users:
+                        user_name = i
+                        if index == np.argmin(distances):
+                            if distances[index] <= threshold:
+                                # print("detected: ",user_name)
+
+                                if metric == "euclidean":
+                                    similarity = 100 + (90 - 100 * distance)
+                                elif metric == "cosine":
+                                    similarity = 100 + (40 - 100 * distance)
+
+                                if similarity > 99.99: similarity = 99.99
+
+                                label_name = "%s (%s%s)" % (user_name, str(round(similarity, 2)), '%')
+
+                                break
+
+                        index = index + 1
+
+                    cv2.putText(img, label_name, (int(x + w + 15), int(y - 64)), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                (255, 255, 255), 2)
+
+                    if dump:
+                        print("----------------------")
+
+                    # connect face and text
+                    cv2.line(img, (x + w, y - 64), (x + w - 25, y - 64), color, 1)
+                    cv2.line(img, (int(x + w / 2), y), (x + w - 25, y - 64), color, 1)
+
+            # END OpenFace stuff --------------------------------------------------------------------------
+
 
             # convert it to texture for display in app:
             buf1 = cv2.flip(frame, 0)
