@@ -464,6 +464,8 @@ class KivyCamera(kivy.uix.image.Image):
                     # else:
                     #     color = (0, 0, 255)  # red box
 
+                    if similarity is 0:
+                        user_name = 'unknown'
                     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
                     cv2.putText(frame, str(user_name), (x + 5, y - 5), font, 1, color, 2)
                     cv2.putText(frame, str(similarity), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
