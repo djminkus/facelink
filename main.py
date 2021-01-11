@@ -353,6 +353,8 @@ class KivyCamera(kivy.uix.image.Image):
         # self.face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
         self.fd_model = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
 
+        self.window = ['a', 'b', 'c', 'd', 'e']  # 5 most recent usernames
+
         # self.face_recognizer = cv2.face.LBPHFaceRecognizer_create()
         # self.face_recognizer.read('trainer/Trained_Model_w_DNN_hakan.yml')
 
@@ -466,6 +468,10 @@ class KivyCamera(kivy.uix.image.Image):
 
                     if similarity is 0:
                         user_name = 'unknown'
+
+                    self.window.append(user_name)
+                    # Find "mode" of window
+
                     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
                     cv2.putText(frame, str(user_name), (x + 5, y - 5), font, 1, color, 2)
                     cv2.putText(frame, str(similarity), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
