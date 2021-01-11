@@ -330,7 +330,7 @@ user_pictures = "user_faces/"
 # employees = dict()
 users = dict()
 
-for file in os.listdir(user_pictures):
+for file in os.listdir(user_pictures):  # Fill dictionary with image representations
     user, extension = file.split(".")
     img = preprocess_image('user_faces/%s.jpg' % user)  # *further changes here?
     representation = of_model.predict(img)[0, :]
@@ -387,38 +387,11 @@ class KivyCamera(Image):
                     x = startX
                     y = startY
 
-                    id, inv_conf = self.face_recognizer.predict(gray[y:y + h, x:x + w])
-                    if inv_conf < 100:
-                        id = names[id - 1]
-                        confidence = "  {0}%".format(round(100 - inv_conf))
-                    else:
-                        id = "unknown"
-                        confidence = "  {0}%".format(round(100 - inv_conf))
-
-                    # According the similarity results face box will be change
-                    if inv_conf < 20:
-                        color = (0, 255, 0)  # green box
-                    elif inv_conf < 40:
-                        color = (0, 255, 255)  # yellow box
-                    else:
-                        color = (0, 0, 255)  # red box
-
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
-                    cv2.putText(frame, str(id), (x + 5, y - 5), font, 1, color, 2)
-                    cv2.putText(frame, str(confidence), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
-
-            # OpenFace stuff: ----------------------------------------------
-            for (x, y, w, h) in faces:
-                if w > 130:  # discard small detected faces
-                    cv2.rectangle(img, (x, y), (x + w, y + h), color, 1)  # draw rectangle to main image
-
-                    detected_face = img[int(y):int(y + h), int(x):int(x + w)]  # crop detected face
-                      # ^ ***
-                    detected_face = cv2.resize(detected_face, (96, 96))  # resize to 96x96
+                    detected_face = cv2.resize(face, (96, 96))  # resize to 96x96
 
                     img_pixels = image.img_to_array(detected_face)
                     img_pixels = np.expand_dims(img_pixels, axis=0)
-                    # employee dictionary is using preprocess_image and it normalizes in scale of [-1, +1]
+                    # user dictionary is using preprocess_image and it normalizes in scale of [-1, +1]
                     img_pixels /= 127.5
                     img_pixels -= 1
 
@@ -426,9 +399,9 @@ class KivyCamera(Image):
 
                     distances = []
 
-                    for i in users:
-                        user_name = i
-                        source_representation = users[i]
+                    for u in users:  # For each user, find "distance" between detected face and that user's face
+                        user_name = u
+                        source_representation = users[u]
 
                         if metric == "cosine":
                             distance = findCosineDistance(captured_representation, source_representation)
@@ -441,10 +414,10 @@ class KivyCamera(Image):
 
                     label_name = 'unknown'
                     index = 0
-                    for i in users:
-                        user_name = i
-                        if index == np.argmin(distances):
-                            if distances[index] <= threshold:
+                    for u in users:  #
+                        user_name = u
+                        if index == np.argmin(distances):  # If this index is that of the minimum val in distances...
+                            if distances[index] <= threshold:  # and that distance is less than the chosen threshold...
                                 # print("detected: ",user_name)
 
                                 if metric == "euclidean":
@@ -454,24 +427,107 @@ class KivyCamera(Image):
 
                                 if similarity > 99.99: similarity = 99.99
 
-                                label_name = "%s (%s%s)" % (user_name, str(round(similarity, 2)), '%')
+                                # label_name = "%s (%s%s)" % (user_name, str(round(similarity, 2)), '%')
 
-                                break
+                                # sim_str = "  {0}%".format(round(similarity))
+
+                                # Color-code box based on similarity level:
+                                if similarity > 80:
+                                    color = (0, 255, 0)  # green box
+                                elif similarity > 60:
+                                    color = (0, 255, 255)  # yellow box
+                                else:
+                                    color = (0, 0, 255)  # red box
+
+                                break  # User match found; stop checking.
 
                         index = index + 1
 
-                    cv2.putText(img, label_name, (int(x + w + 15), int(y - 64)), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                                (255, 255, 255), 2)
+                    # id, inv_conf = self.face_recognizer.predict(gray[y:y + h, x:x + w])
+                    # if inv_conf < 100:
+                    #     id = names[id - 1]
+                    #     confidence = "  {0}%".format(round(100 - inv_conf))
+                    # else:
+                    #     id = "unknown"
+                    #     confidence = "  {0}%".format(round(100 - inv_conf))
 
-                    if dump:
-                        print("----------------------")
+                    # According the similarity results face box will be change
+                    # if inv_conf < 20:
+                    #     color = (0, 255, 0)  # green box
+                    # elif inv_conf < 40:
+                    #     color = (0, 255, 255)  # yellow box
+                    # else:
+                    #     color = (0, 0, 255)  # red box
 
-                    # connect face and text
-                    cv2.line(img, (x + w, y - 64), (x + w - 25, y - 64), color, 1)
-                    cv2.line(img, (int(x + w / 2), y), (x + w - 25, y - 64), color, 1)
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
+                    cv2.putText(frame, str(user_name), (x + 5, y - 5), font, 1, color, 2)
+                    cv2.putText(frame, str(similarity), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
+
+            # OpenFace stuff: ----------------------------------------------
+            #   Given "faces" from Haar detector (not our "faces"):
+            # for (x, y, w, h) in faces:
+            #     if w > 130:  # discard small detected faces
+            #         cv2.rectangle(img, (x, y), (x + w, y + h), color, 1)  # draw rectangle to main image
+            #
+            #         detected_face = img[int(y):int(y + h), int(x):int(x + w)]  # crop detected face
+            #           # ^ ***
+            #         detected_face = cv2.resize(detected_face, (96, 96))  # resize to 96x96
+            #
+            #         img_pixels = image.img_to_array(detected_face)
+            #         img_pixels = np.expand_dims(img_pixels, axis=0)
+            #         # employee dictionary is using preprocess_image and it normalizes in scale of [-1, +1]
+            #         img_pixels /= 127.5
+            #         img_pixels -= 1
+            #
+            #         captured_representation = of_model.predict(img_pixels)[0, :]
+            #
+            #         distances = []
+            #
+            #         for i in users:
+            #             user_name = i
+            #             source_representation = users[i]
+            #
+            #             if metric == "cosine":
+            #                 distance = findCosineDistance(captured_representation, source_representation)
+            #             elif metric == "euclidean":
+            #                 distance = findEuclideanDistance(captured_representation, source_representation)
+            #
+            #             if dump:
+            #                 print(user_name, ": ", distance)
+            #             distances.append(distance)
+            #
+            #         label_name = 'unknown'
+            #         index = 0
+            #         for i in users:
+            #             user_name = i
+            #             if index == np.argmin(distances):
+            #                 if distances[index] <= threshold:
+            #                     # print("detected: ",user_name)
+            #
+            #                     if metric == "euclidean":
+            #                         similarity = 100 + (90 - 100 * distance)
+            #                     elif metric == "cosine":
+            #                         similarity = 100 + (40 - 100 * distance)
+            #
+            #                     if similarity > 99.99: similarity = 99.99
+            #
+            #                     label_name = "%s (%s%s)" % (user_name, str(round(similarity, 2)), '%')
+            #
+            #                     break
+            #
+            #             index = index + 1
+            #
+            #         cv2.putText(img, label_name, (int(x + w + 15), int(y - 64)), cv2.FONT_HERSHEY_SIMPLEX, 1,
+            #                     (255, 255, 255), 2)
+            #
+            #         if dump:
+            #             print("----------------------")
+            #
+            #         # connect face and text
+            #         cv2.line(img, (x + w, y - 64), (x + w - 25, y - 64), color, 1)
+            #         cv2.line(img, (int(x + w / 2), y), (x + w - 25, y - 64), color, 1)
 
             # END OpenFace stuff --------------------------------------------------------------------------
-
 
             # convert it to texture for display in app:
             buf1 = cv2.flip(frame, 0)
