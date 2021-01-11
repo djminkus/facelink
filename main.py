@@ -416,6 +416,8 @@ class KivyCamera(kivy.uix.image.Image):
                         distances.append(distance)
 
                     label_name = 'unknown'
+                    color = (100, 100, 100)
+                    similarity = 0
                     index = 0
                     for u in users:  #
                         user_name = u
@@ -441,8 +443,6 @@ class KivyCamera(kivy.uix.image.Image):
                                     color = (0, 255, 255)  # yellow box
                                 else:
                                     color = (0, 0, 255)  # red box
-
-                                print(color)
 
                                 break  # User match found; stop checking.
 
