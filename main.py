@@ -41,7 +41,7 @@ bios = [
 ]
 
 
-def my_mode(sample):
+def my_mode(sample):  # Find mode of a list.
     c = Counter(sample)
     return [k for k, v in c.items() if v == c.most_common(1)[0][1]]
 
@@ -51,8 +51,8 @@ counter = 0
 
 # Initialize and start realtime video capture
 cam = cv2.VideoCapture(0)
-cam.set(3, 640)  # set video width
-cam.set(4, 480)  # set video height
+# cam.set(3, 640)  # set video width
+# cam.set(4, 480)  # set video height
 
 # Define min window size to be recognized as a face
 minW = 0.1 * cam.get(3)
@@ -339,15 +339,22 @@ user_pictures = "user_faces/"
 
 # employees = dict()
 users = dict()
+filenames_no_ext = []  # list of filenames without extensions
+usernames_ = []  # list of usernames (without numbers)
 
 for file in os.listdir(user_pictures):  # Fill dictionary with image representations
     user, extension = file.split(".")  # user becomes "david_0" for example
+    filenames_no_ext.append(user)
+
+    user_name, _ = user.split('_')  # Get username without number
+    usernames_.append(user_name)
+
     img = preprocess_image('user_faces/%s.jpg' % user)  # *further changes here?
     representation = of_model.predict(img)[0, :]
-
     users[user] = representation
 
-print("employee representations retrieved successfully")
+print("user representations retrieved successfully")
+usernames_ = list(set(usernames_))  # Remove duplicates from list of usernames
 
 
 # Kivy setup (function to process each frame is here):
@@ -360,10 +367,12 @@ class KivyCamera(kivy.uix.image.Image):
         # self.face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
         self.fd_model = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
 
-        self.window = ['a', 'b', 'c', 'd', 'e']  # 5 most recent usernames
+        self.max_win = 40  # Window length
+        self.window = ['a'] * self.max_win  # x most recent usernames
         self.win_c = 0  # Window cursor. An index
-        self.max_win = 4   # Window length
-        self.counts = dict()
+        # self.counts = dict()
+
+        self.frame_counter = 0
 
         # self.face_recognizer = cv2.face.LBPHFaceRecognizer_create()
         # self.face_recognizer.read('trainer/Trained_Model_w_DNN_hakan.yml')
@@ -393,8 +402,6 @@ class KivyCamera(kivy.uix.image.Image):
                 if confidence > 0.5:
                     count += 1
                     face = frame[startY:endY, startX:endX]
-                      # ^ ***
-                    # cv2.imwrite(base_dir + '/dnn_extracted_faces/' + str(i) + '_' + file, frame_)
                     faces.append(face)
 
                     h = endY - startY
@@ -402,97 +409,106 @@ class KivyCamera(kivy.uix.image.Image):
                     x = startX
                     y = startY
 
-                    detected_face = cv2.resize(face, (96, 96))  # resize to 96x96
+                    if self.frame_counter % 50 is 0:
+                        print(f'height, width are {h}, {w}')
 
-                    img_pixels = image.img_to_array(detected_face)
-                    img_pixels = np.expand_dims(img_pixels, axis=0)
-                    # user dictionary is using preprocess_image and it normalizes in scale of [-1, +1]
-                    img_pixels /= 127.5
-                    img_pixels -= 1
+                    try:
+                        detected_face = cv2.resize(face, (96, 96))  # resize to 96x96
 
-                    captured_representation = of_model.predict(img_pixels)[0, :]
+                        img_pixels = image.img_to_array(detected_face)
+                        img_pixels = np.expand_dims(img_pixels, axis=0)
+                        # user dictionary is using preprocess_image and it normalizes in scale of [-1, +1]
+                        img_pixels /= 127.5
+                        img_pixels -= 1
 
-                    distances = []
+                        captured_representation = of_model.predict(img_pixels)[0, :]
 
-                    for u in users:  # For each user, find "distance" between detected face and that user's face
-                        user_name = u
-                        source_representation = users[u]
+                        distances = []
 
-                        if metric == "cosine":
-                            distance = findCosineDistance(captured_representation, source_representation)
-                        elif metric == "euclidean":
-                            distance = findEuclideanDistance(captured_representation, source_representation)
+                        for u in users:  # For each user, find "distance" between detected face and that user's face
+                            user_name = u
+                            source_representation = users[u]
 
-                        if dump:
-                            print(user_name, ": ", distance)
-                        distances.append(distance)
+                            if metric == "cosine":
+                                distance = findCosineDistance(captured_representation, source_representation)
+                            elif metric == "euclidean":
+                                distance = findEuclideanDistance(captured_representation, source_representation)
 
-                    label_name = 'unknown'
-                    color = (100, 100, 100)
-                    similarity = 0
-                    index = 0
-                    for u in users:  #
-                        user_name = u
-                        if index == np.argmin(distances):  # If this index is that of the minimum val in distances...
-                            if distances[index] <= threshold:  # and that distance is less than the chosen threshold...
-                                # print("detected: ",user_name)
+                            if dump:
+                                print(user_name, ": ", distance)
+                            distances.append(distance)
 
-                                if metric == "euclidean":
-                                    similarity = 100 + (90 - 100 * distance)
-                                elif metric == "cosine":
-                                    similarity = 100 + (40 - 100 * distance)
+                        label_name = 'unknown_0'
+                        color = (100, 100, 100)
+                        similarity = 0
+                        index = 0
+                        for u in users:  #
+                            user_name = u
+                            if index == np.argmin(distances):  # If this index is that of the minimum val in distances...
+                                if distances[index] <= threshold:  # and that distance is less than the chosen threshold...
+                                    # print("detected: ",user_name)
 
-                                if similarity > 99.99: similarity = 99.99
+                                    if metric == "euclidean":
+                                        similarity = 100 + (90 - 100 * distance)
+                                    elif metric == "cosine":
+                                        similarity = 100 + (40 - 100 * distance)
 
-                                # label_name = "%s (%s%s)" % (user_name, str(round(similarity, 2)), '%')
+                                    if similarity > 99.99:
+                                        similarity = 99.99
 
-                                # sim_str = "  {0}%".format(round(similarity))
+                                    # label_name = "%s (%s%s)" % (user_name, str(round(similarity, 2)), '%')
 
-                                # Color-code box based on similarity level:
-                                if similarity > 80:
-                                    color = (0, 255, 0)  # green box
-                                elif similarity > 60:
-                                    color = (0, 255, 255)  # yellow box
-                                else:
-                                    color = (0, 0, 255)  # red box
+                                    # sim_str = "  {0}%".format(round(similarity))
 
-                                break  # User match found; stop checking.
+                                    # Color-code box based on similarity level:
+                                    if similarity > 80:
+                                        color = (0, 255, 0)  # green box
+                                    elif similarity > 60:
+                                        color = (0, 255, 255)  # yellow box
+                                    else:
+                                        color = (0, 0, 255)  # red box
 
-                        index = index + 1
+                                    break  # User match found; stop checking.
 
-                    # id, inv_conf = self.face_recognizer.predict(gray[y:y + h, x:x + w])
-                    # if inv_conf < 100:
-                    #     id = names[id - 1]
-                    #     confidence = "  {0}%".format(round(100 - inv_conf))
-                    # else:
-                    #     id = "unknown"
-                    #     confidence = "  {0}%".format(round(100 - inv_conf))
+                            index = index + 1
 
-                    # According the similarity results face box will be change
-                    # if inv_conf < 20:
-                    #     color = (0, 255, 0)  # green box
-                    # elif inv_conf < 40:
-                    #     color = (0, 255, 255)  # yellow box
-                    # else:
-                    #     color = (0, 0, 255)  # red box
+                        # id, inv_conf = self.face_recognizer.predict(gray[y:y + h, x:x + w])
+                        # if inv_conf < 100:
+                        #     id = names[id - 1]
+                        #     confidence = "  {0}%".format(round(100 - inv_conf))
+                        # else:
+                        #     id = "unknown"
+                        #     confidence = "  {0}%".format(round(100 - inv_conf))
 
-                    if similarity is 0:
-                        user_name = 'unknown'
+                        # According the similarity results face box will be change
+                        # if inv_conf < 20:
+                        #     color = (0, 255, 0)  # green box
+                        # elif inv_conf < 40:
+                        #     color = (0, 255, 255)  # yellow box
+                        # else:
+                        #     color = (0, 0, 255)  # red box
 
-                    self.window[self.win_c] = user_name
-                    self.win_c += 1
-                    if self.win_c > self.max_win:
-                        self.win_c = 0
+                        if similarity is 0:
+                            user_name = 'unknown_0'
 
-                    # for b in range(self.max_win):
-                    #     self.counts[self.window[self.win_c]] += 1
+                        # trim the number off:
+                        user_name, _ = user_name.split('_')
 
-                    mode = my_mode(self.window)  # Most common result from last 5 frames
+                        self.window[self.win_c] = user_name
+                        self.win_c += 1
+                        if self.win_c >= self.max_win:
+                            self.win_c = 0
 
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
-                    cv2.putText(frame, str(user_name), (x + 5, y - 5), font, 1, color, 2)
-                    cv2.putText(frame, str(similarity), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
+                        # for b in range(self.max_win):
+                        #     self.counts[self.window[self.win_c]] += 1
 
+                        mode = my_mode(self.window)  # Most common result from last 5 frames
+
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
+                        cv2.putText(frame, str(mode), (x + 5, y - 5), font, 1, color, 2)
+                        cv2.putText(frame, str(similarity), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
+                    except:
+                        print("error caught")
 
 
             # OpenFace stuff: ----------------------------------------------
@@ -569,6 +585,8 @@ class KivyCamera(kivy.uix.image.Image):
             image_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
             # display image from the texture
             self.texture = image_texture
+
+            self.frame_counter += 1
 
 
 class CamApp(App):

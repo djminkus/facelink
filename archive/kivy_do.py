@@ -75,7 +75,7 @@ class TestCamera(App):
         return CameraClick()
 
 
-# TestCamera().run()
+TestCamera().run()
 
 
 '''
@@ -168,4 +168,4 @@ class PuzzleApp(App):
         instance.value = value
 
 
-PuzzleApp().run()
+# PuzzleApp().run()
