@@ -343,15 +343,18 @@ filenames_no_ext = []  # list of filenames without extensions
 usernames_ = []  # list of usernames (without numbers)
 
 for file in os.listdir(user_pictures):  # Fill dictionary with image representations
-    user, extension = file.split(".")  # user becomes "david_0" for example
-    filenames_no_ext.append(user)
+    first_char = file[:1]
+    # ignore .DS_Store, etc.
+    if first_char is not '.':
+        user, extension = file.split(".")  # user becomes "david_0" for example
+        filenames_no_ext.append(user)
 
-    user_name, _ = user.split('_')  # Get username without number
-    usernames_.append(user_name)
+        user_name, _ = user.split('_')  # Get username without number
+        usernames_.append(user_name)
 
-    img = preprocess_image('user_faces/%s.jpg' % user)  # *further changes here?
-    representation = of_model.predict(img)[0, :]
-    users[user] = representation
+        img = preprocess_image('user_faces/%s.jpg' % user)  # *further changes here?
+        representation = of_model.predict(img)[0, :]
+        users[user] = representation
 
 print("user representations retrieved successfully")
 usernames_ = list(set(usernames_))  # Remove duplicates from list of usernames
