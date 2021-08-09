@@ -1,5 +1,6 @@
 # FaceLink
 
-See openFace branch for most current work
+See the "openFace" branch for the most current work
 
 Originally called "bioPanes"
+
