@@ -23,37 +23,45 @@ bios = [
 unknown_bio = 'this person is not a FaceLink user.'
 
 
-def getImages(paths):
+def getImages(paths: list) -> tuple[list, list]:
     # imagePaths = [os.path.join(path, f) for f in os.listdir(path)]
 
     imgs = []
     grays = []
     for imagePath in paths:
-        PIL_img = Image.open(imagePath)
-        PIL_img_gray = PIL_img.convert('L')
+        pil_img = Image.open(imagePath)
+        pil_img_gray = pil_img.convert('L')
+
         img_numpy = np.array(cv2.imread(imagePath))
-        img_gray_numpy = np.array(PIL_img_gray, 'uint8')
+        img_gray_numpy = np.array(pil_img_gray, 'uint8')
+
         imgs.append(img_numpy)
         grays.append(img_gray_numpy)
     return imgs, grays
 
 
 def main():
-
+    # Create a Haar Cascade classifier for face detection:
     face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+    # Not implemented: Create a separate classifier for the side view
     # face_detector_side = cv2.CascadeClassifier('')
+
+    # Create a recognizer using LBPH (Local Binary Pattern Histograms)
     face_recognizer = cv2.face.LBPHFaceRecognizer_create()
+
+    # Load a trained model from a .yml file:
     face_recognizer.read('trainer/Trained_Model_w_DNN_hakan.yml')
     # face_recognizer.read('trainer/trainer.yml')
 
     imgs, grays = getImages(Test_Set_Names)
     counter = 0
 
-    # Creating a directory for the results
+    # Name of directory for the results
     directory = "FACELINK RESULTS"
 
-    # TODO PLEASE ENTER YOUR DIRECTORY!!
-    #parent_dir = "/Users/dg/coding/PycharmProjects/facelink/bioPanes"
+    # Get directory path:
+    # parent_dir = "/Users/dg/coding/PycharmProjects/facelink/bioPanes"
     parent_dir = os.path.dirname(__file__)
 
     path = os.path.join(parent_dir, directory)

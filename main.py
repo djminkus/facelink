@@ -35,7 +35,7 @@ color = (67, 67, 67)
 font = cv2.FONT_HERSHEY_SIMPLEX
 names = ['David', 'Hakan', 'Unknown']
 bios = [
-    '''seeking Master's in Electrical Engineering at Colorado School of Mines''',
+    '''seeking MS in EE at Colorado School of Mines''',
     'seeking a Ph.D. at Colorado School of Mines',
     'this person is not a FaceLink user.'
 ]
@@ -81,7 +81,7 @@ def preprocess_image(image_path):
     return img
 
 
-def buildModel():  # Build the face  recognition model
+def buildModel():  # Build the face recognition model
     myInput = Input(shape=(96, 96, 3))
 
     x = ZeroPadding2D(padding=(3, 3), input_shape=(96, 96, 3))(myInput)
@@ -506,10 +506,11 @@ class KivyCamera(kivy.uix.image.Image):
                         #     self.counts[self.window[self.win_c]] += 1
 
                         mode = my_mode(self.window)  # Most common result from last 5 frames
+                        simi_string = str(similarity)[0:2]
 
                         cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
                         cv2.putText(frame, str(mode), (x + 5, y - 5), font, 1, color, 2)
-                        cv2.putText(frame, str(similarity), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
+                        cv2.putText(frame, simi_string, (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
                     except:
                         print("error caught")
 
