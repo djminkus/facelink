@@ -1,9 +1,13 @@
 # FaceLink
 
-## A realtime social networking app using facial recognition.
+## Vision: A realtime social networking app using facial recognition.
 ### Made for introverts who care.
 
 Learn about the people you see without talking to them. 
+
+Current state: Face detection and recognition using OpenFace is implemented and integrated with Kivy, a cross-platform Python framework.
+
+Video demo on Youtube: [link](https://www.youtube.com/watch?v=4skT0zUYFTs)
 
 Report available [here](https://drive.google.com/file/d/1esBdGMpKG4RAVXSxpRoqP66oldAImJsU/view?usp=sharing) for comment/review. Covers concept, vision, some technical background. (Dec 2020) 
 
