@@ -3,6 +3,7 @@
 # FaceLink
 # A social networking app for 2021
 import os
+import traceback
 
 from kivy.app import App
 # from kivy.uix.image import Image
@@ -33,17 +34,23 @@ dump = False  # Dump recognition output stuff into console?
 color = (67, 67, 67)
 
 font = cv2.FONT_HERSHEY_SIMPLEX
-names = ['David', 'Hakan', 'Unknown']
-bios = [
-    '''seeking MS in EE at Colorado School of Mines''',
-    'seeking a Ph.D. at Colorado School of Mines',
-    'this person is not a FaceLink user.'
-]
+
+
+class User:
+    def __init__(self, name, bio):
+        self.name = name
+        self.bio = bio
+
+    def setBio(self, bio):
+        self.bio = bio
+
+    def getBio(self):
+        return self.bio
 
 
 def my_mode(sample):  # Find mode of a list.
     c = Counter(sample)
-    return [k for k, v in c.items() if v == c.most_common(1)[0][1]]
+    return [k for k, v in c.items() if v == c.most_common(1)[0][1]][0]
 
 
 # ---- everything before cam loop:
@@ -69,7 +76,7 @@ prototxt_path = os.path.join(base_dir + '/model_data/deploy.prototxt')
 caffemodel_path = os.path.join(base_dir + '/model_data/weights.caffemodel')
 
 
-# OpenFace stuff
+# OpenFace stuff -- Keras preprocessing
 def preprocess_image(image_path):
     img = load_img(image_path, target_size=(96, 96))
     img = img_to_array(img)
@@ -338,11 +345,25 @@ else:
 user_pictures = "user_faces/"
 
 # employees = dict()
-users = dict()
+users = dict()    # Holds image representations
 filenames_no_ext = []  # list of filenames without extensions
-usernames_ = []  # list of usernames (without numbers)
+usernames_from_image_files = []  # list of usernames (without numbers)
 
-for file in os.listdir(user_pictures):  # Fill dictionary with image representations
+names = ['David', 'Hakan', 'Unknown']
+bios = [
+    'MS EE (Info. and Sys. Sci.), Colorado School of Mines',
+    'seeking a Ph.D. at Colorado School of Mines',
+    'this person is not a FaceLink user.'
+]
+
+# Combine names and bios into User objects:
+Users = []
+for i, name in enumerate(names):
+    newUser = User(name, bios[i])
+    Users.append(newUser)
+
+# Populate lists and dictionary:
+for file in os.listdir(user_pictures):
     first_char = file[:1]
     # ignore .DS_Store, etc.
     if first_char is not '.':
@@ -350,14 +371,15 @@ for file in os.listdir(user_pictures):  # Fill dictionary with image representat
         filenames_no_ext.append(user)
 
         user_name, _ = user.split('_')  # Get username without number
-        usernames_.append(user_name)
+        usernames_from_image_files.append(user_name)
 
         img = preprocess_image('user_faces/%s.jpg' % user)  # *further changes here?
         representation = of_model.predict(img)[0, :]
         users[user] = representation
 
+usernames_from_image_files = list(set(usernames_from_image_files))  # Remove duplicates from list of usernames
+usernames_from_image_files = [username.capitalize() for username in usernames_from_image_files]
 print("user representations retrieved successfully")
-usernames_ = list(set(usernames_))  # Remove duplicates from list of usernames
 
 
 # Kivy setup (function to process each frame is here):
@@ -394,14 +416,14 @@ class KivyCamera(kivy.uix.image.Image):
 
             count = 0
             faces = []
-            # Identify each face
+            # Identify each face. Start by iterating over detections:
             for i in range(0, detections.shape[2]):
                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (startX, startY, endX, endY) = box.astype("int")
 
                 confidence = detections[0, 0, i, 2]
 
-                # If confidence > 0.5, do stuff
+                # If confidence > 0.5, consider this a real face and process it:
                 if confidence > 0.5:
                     count += 1
                     face = frame[startY:endY, startX:endX]
@@ -428,7 +450,8 @@ class KivyCamera(kivy.uix.image.Image):
 
                         distances = []
 
-                        for u in users:  # For each user, find "distance" between detected face and that user's face
+                        # For each user, find "distance" between detected face and that user's face
+                        for u in users:
                             user_name = u
                             source_representation = users[u]
 
@@ -449,7 +472,7 @@ class KivyCamera(kivy.uix.image.Image):
                             user_name = u
                             if index == np.argmin(distances):  # If this index is that of the minimum val in distances...
                                 if distances[index] <= threshold:  # and that distance is less than the chosen threshold...
-                                    # print("detected: ",user_name)
+                                    print("detected: ", user_name)
 
                                     if metric == "euclidean":
                                         similarity = 100 + (90 - 100 * distance)
@@ -497,22 +520,28 @@ class KivyCamera(kivy.uix.image.Image):
                         # trim the number off:
                         user_name, _ = user_name.split('_')
 
+                        # Load it into the averaging window:
                         self.window[self.win_c] = user_name
                         self.win_c += 1
                         if self.win_c >= self.max_win:
                             self.win_c = 0
 
-                        # for b in range(self.max_win):
-                        #     self.counts[self.window[self.win_c]] += 1
+                        mode = my_mode(self.window)  # Most common result from last 5 frames (best guess for user)
+                        name_ = mode.capitalize()
 
-                        mode = my_mode(self.window)  # Most common result from last 5 frames
                         simi_string = str(similarity)[0:2]
+                        # Find index associated with selected user:
+                        index = usernames_from_image_files.index(name_)
+                        bio = Users[index].getBio()
 
-                        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
-                        cv2.putText(frame, str(mode), (x + 5, y - 5), font, 1, color, 2)
-                        cv2.putText(frame, simi_string, (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 1)
+                        cv2.putText(frame, name_, (x + 5, y - 5), font, 1, color, 2)
+                        cv2.putText(frame, simi_string, (x + 5, y + h - 5), font, .5, (255, 255, 0), 1)
+                        cv2.putText(frame, bio, (x + 5, y + h + 15), font, .55, (255, 255, 0), 1)
                     except:
                         print("error caught")
+                        print(traceback.format_exc())
+                    # end try block
 
 
             # OpenFace stuff: ----------------------------------------------
